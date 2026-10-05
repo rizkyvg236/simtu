@@ -320,13 +320,13 @@ if(file_exists('uploads/assets/ttd_settings.json')) {
     $current_page = basename($_SERVER['PHP_SELF']); 
     $cek_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
     ?>
-
+<!-- 1. Dashboard -->
     <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-pie"></i> <span class="menu-text">Dashboard</span></a>
-    
+<!-- 2. Manajemen User -->     
     <?php if(in_array($cek_role, ['Administrator'])): ?>
     <a href="admin.php" class="<?= $current_page == 'admin.php' ? 'active' : '' ?>"><i class="fas fa-users-cog"></i> <span class="menu-text">Manajemen User</span></a>
     <?php endif; ?>
-
+<!-- 3. Menu Kepegawaian (Dropdown) -->
     <?php 
     $is_kepegawaian = in_array($current_page, ['duk.php', 'masakerja.php']);
     if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -336,13 +336,19 @@ if(file_exists('uploads/assets/ttd_settings.json')) {
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kepegawaian ? 'show' : '' ?>" id="menuKepegawaian" data-bs-parent="#sidebar">
+         <!-- Sub-menu 1: DUK & Masa Bakti -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="duk.php" class="<?= $current_page == 'duk.php' ? 'active' : '' ?>"><i class="fas fa-list-ol"></i> <span class="menu-text">DUK & Masa Bakti</span></a>
+        <!-- Sub-menu 2: Arsip Kepegawaian --> 
         <a href="arsip_kepeg.php" class="<?= $current_page == 'arsipkepegawaian.php' ? 'active' : '' ?>"><i class="fa-regular fa-folder" style="color: rgb(255, 255, 255);"></i></i> <span class="menu-text">Arsip Kepegawaian</span></a>
+        <?php endif; ?>
+        <!-- Sub-menu 3: Beban ajar -->
+        <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+        <a href="beban_ajar.php" class="<?= $current_page == 'beban_ajar.php' ? 'active' : '' ?>"><i class="fas fa-book-reader" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Beban Ajar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 4. Menu Persuratan (Dropdown) -->
     <?php 
     $is_persuratan = in_array($current_page, ['suratmasuk.php', 'suratkeluar.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -353,12 +359,14 @@ if(file_exists('uploads/assets/ttd_settings.json')) {
     </a>
     <div class="collapse <?= $is_persuratan ? 'show' : '' ?>" id="menuPersuratan" data-bs-parent="#sidebar">
         <?php if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+       <!-- Sub-menu 1: Surat Masuk -->
         <a href="suratmasuk.php" class="<?= $current_page == 'suratmasuk.php' ? 'active' : '' ?>"><i class="fas fa-envelope-open-text"></i> <span class="menu-text">Surat Masuk</span></a>
+        <!-- Sub-menu 2: Surat Keluar -->
         <a href="suratkeluar.php" class="<?= $current_page == 'suratkeluar.php' ? 'active' : '' ?>"><i class="fas fa-paper-plane"></i> <span class="menu-text">Surat Keluar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    
+ <!-- 5. Menu Kesiswaan (Dropdown) -->   
     <?php 
     $is_kesiswaan = in_array($current_page, ['mutasi.php', 'piket.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): 
@@ -368,7 +376,8 @@ if(file_exists('uploads/assets/ttd_settings.json')) {
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kesiswaan ? 'show' : '' ?>" id="menuKesiswaan" data-bs-parent="#sidebar">
-        <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+        <!-- Sub-menu 1. Mutasi -->   
+    <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="mutasi.php" class="<?= $current_page == 'mutasi.php' ? 'active' : '' ?>"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Mutasi Siswa</span></a>
         <?php endif; ?>
         <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): ?>
@@ -376,11 +385,11 @@ if(file_exists('uploads/assets/ttd_settings.json')) {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 6. Menu Laporan / Report -->
     <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket', 'TU_Persuratan'])): ?>
     <a href="laporan.php" class="<?= $current_page == 'laporan.php' ? 'active' : '' ?>"><i class="fas fa-file-export"></i> <span class="menu-text">Report</span></a>
     <?php endif; ?>
-    
+    <!-- 7. Logout -->    
     <a href="logout.php" class="mt-auto text-danger"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a>
 </div>
 

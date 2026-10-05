@@ -207,13 +207,13 @@ try {
     $current_page = basename($_SERVER['PHP_SELF']); 
     $cek_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
     ?>
-
+<!-- 1. Dashboard -->
     <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-pie"></i> <span class="menu-text">Dashboard</span></a>
-    
+<!-- 2. Manajemen User -->  
     <?php if(in_array($cek_role, ['Administrator'])): ?>
     <a href="admin.php" class="<?= $current_page == 'admin.php' ? 'active' : '' ?>"><i class="fas fa-users-cog"></i> <span class="menu-text">Manajemen User</span></a>
     <?php endif; ?>
-
+<!-- 3. Menu Kepegawaian (Dropdown) -->
     <?php 
     $is_kepegawaian = in_array($current_page, ['duk.php', 'arsip_kepeg.php']);
     if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -224,12 +224,15 @@ try {
     </a>
     <div class="collapse <?= $is_kepegawaian ? 'show' : '' ?>" id="menuKepegawaian" data-bs-parent="#sidebar">
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
-        <a href="duk.php" class="<?= $current_page == 'duk.php' ? 'active' : '' ?>"><i class="fas fa-list-ol"></i> <span class="menu-text">DUK</span></a>
+        <a href="duk.php" class="<?= $current_page == 'duk.php' ? 'active' : '' ?>"><i class="fas fa-list-ol"></i> <span class="menu-text">DUK & Masa Bakti</span></a>
         <a href="arsip_kepeg.php" class="<?= $current_page == 'arsip_kepeg.php' ? 'active' : '' ?>"><i class="fa-regular fa-folder" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Arsip Kepegawaian</span></a>
+        <?php endif; ?>
+        <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+        <a href="beban_ajar.php" class="<?= $current_page == 'beban_ajar.php' ? 'active' : '' ?>"><i class="fas fa-book-reader" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Beban Ajar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 4. Menu Persuratan (Dropdown) -->
     <?php 
     $is_persuratan = in_array($current_page, ['suratmasuk.php', 'suratkeluar.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -245,7 +248,7 @@ try {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    
+<!-- 5. Menu Kesiswaan (Dropdown) -->
     <?php 
     $is_kesiswaan = in_array($current_page, ['mutasi.php', 'piket.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): 
@@ -263,11 +266,11 @@ try {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 6. Menu Laporan / Report -->
     <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket', 'TU_Persuratan'])): ?>
     <a href="laporan.php" class="<?= $current_page == 'laporan.php' ? 'active' : '' ?>"><i class="fas fa-file-export"></i> <span class="menu-text">Report</span></a>
     <?php endif; ?>
-    
+<!-- 7. Logout -->
     <a href="logout.php" class="mt-auto text-danger"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a>
 </div>
 

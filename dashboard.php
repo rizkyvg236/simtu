@@ -116,19 +116,18 @@ foreach($raw_gender_rombel as $row) {
     $cek_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
     ?>
 
-    <!-- 1. Dashboard -->
+<!-- 1. Dashboard -->
     <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">
         <i class="fas fa-chart-pie"></i> <span class="menu-text">Dashboard</span>
     </a>
     
-    <!-- 2. Manajemen User -->
+<!-- 2. Manajemen User -->
     <?php if(in_array($cek_role, ['Administrator'])): ?>
     <a href="admin.php" class="<?= $current_page == 'admin.php' ? 'active' : '' ?>">
         <i class="fas fa-users-cog"></i> <span class="menu-text">Manajemen User</span>
     </a>
     <?php endif; ?>
-
-    <!-- 3. Menu Kepegawaian (Dropdown) -->
+<!-- 3. Menu Kepegawaian (Dropdown) -->
     <?php 
     $is_kepegawaian = in_array($current_page, ['duk.php', 'masakerja.php']);
     if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -138,16 +137,22 @@ foreach($raw_gender_rombel as $row) {
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kepegawaian ? 'show' : '' ?>" id="menuKepegawaian" data-bs-parent="#sidebar">
+        
+        <!-- Sub-menu 1: DUK & Masa Bakti -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="duk.php" class="<?= $current_page == 'duk.php' ? 'active' : '' ?>"><i class="fas fa-list-ol"></i> <span class="menu-text">DUK & Masa Bakti</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 2: Arsip Kepegawaian -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="arsip_kepeg.php" class="<?= $current_page == 'arsipkepegawaian.php' ? 'active' : '' ?>"><i class="fa-regular fa-folder" style="color: rgb(255, 255, 255);"></i></i> <span class="menu-text">Arsip Kepegawaian</span></a>
         <?php endif; ?>
+        
+        <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+        <a href="beban_ajar.php" class="<?= $current_page == 'beban_ajar.php' ? 'active' : '' ?>"><i class="fas fa-book-reader" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Beban Ajar</span></a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
-
-    <!-- 4. Menu Persuratan (Dropdown) -->
+<!-- 4. Menu Persuratan (Dropdown) -->
     <?php 
     $is_persuratan = in_array($current_page, ['suratmasuk.php', 'suratkeluar.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -157,16 +162,17 @@ foreach($raw_gender_rombel as $row) {
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_persuratan ? 'show' : '' ?>" id="menuPersuratan" data-bs-parent="#sidebar">
+        <!-- Sub-menu 1: Surat Masuk -->
         <?php if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="suratmasuk.php" class="<?= $current_page == 'suratmasuk.php' ? 'active' : '' ?>"><i class="fas fa-envelope-open-text"></i> <span class="menu-text">Surat Masuk</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 2: Surat Keluar -->
         <?php if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="suratkeluar.php" class="<?= $current_page == 'suratkeluar.php' ? 'active' : '' ?>"><i class="fas fa-paper-plane"></i> <span class="menu-text">Surat Keluar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    
-    <!-- 5. Menu Kesiswaan (Dropdown) -->
+<!-- 5. Menu Kesiswaan (Dropdown) -->
     <?php 
     $is_kesiswaan = in_array($current_page, ['mutasi.php', 'piket.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): 
@@ -176,22 +182,23 @@ foreach($raw_gender_rombel as $row) {
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kesiswaan ? 'show' : '' ?>" id="menuKesiswaan" data-bs-parent="#sidebar">
+        <!-- Sub-menu 1: Mutasi Siswa -->
         <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="mutasi.php" class="<?= $current_page == 'mutasi.php' ? 'active' : '' ?>"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Mutasi Siswa</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 2: Piket Pintar -->
         <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): ?>
         <a href="piket.php" class="<?= $current_page == 'piket.php' ? 'active' : '' ?>"><i class="fas fa-clipboard-user"></i> <span class="menu-text">Piket Pintar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
-    <!-- 6. Menu Laporan / Report -->
+<!-- 6. Menu Laporan / Report -->
     <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket', 'TU_Persuratan'])): ?>
     <a href="laporan.php" class="<?= $current_page == 'laporan.php' ? 'active' : '' ?>">
         <i class="fas fa-file-export"></i> <span class="menu-text">Report</span>
     </a>
     <?php endif; ?>
-    
+<!-- 7. Logout -->
     <a href="logout.php" class="mt-auto text-danger"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a>
 </div>
 

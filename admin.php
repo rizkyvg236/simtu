@@ -163,6 +163,87 @@ if (isset($_GET['download_template'])) {
     exit;
 }
 
+// 7.0 Export Data Pengguna SIMTU (.csv)
+if (isset($_GET['export_user'])) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="Data_Pengguna_SIMTU_' . date('Y-m-d') . '.csv"');
+    $output = fopen('php://output', 'w');
+    fwrite($output, "\xEF\xBB\xBF");
+    fputcsv($output, ['nip', 'nama_lengkap', 'jabatan', 'status_kepegawaian', 'role']);
+
+    $stmt_users_export = $pdo->query("SELECT nip, nama_lengkap, jabatan, status_kepegawaian, role FROM users ORDER BY nama_lengkap ASC");
+    while ($row = $stmt_users_export->fetch(PDO::FETCH_ASSOC)) {
+        fputcsv($output, [
+            $row['nip'],
+            $row['nama_lengkap'],
+            $row['jabatan'],
+            $row['status_kepegawaian'],
+            $row['role']
+        ]);
+    }
+
+    fclose($output);
+    exit;
+}
+
+// 7.1 Export Template Excel User (.csv)
+if (isset($_GET['download_template_user'])) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=Template_Import_Pengguna_SIMTU.csv');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['nip', 'nama_lengkap', 'jabatan', 'status_kepegawaian', 'role']);
+    fputcsv($output, ['198001012010011001', 'Budi Santoso', 'Wali Kelas', 'ASN', 'Wali_Kelas']);
+    fclose($output);
+    exit;
+}
+
+// 7.2 Import Data User dari Excel/CSV
+if (isset($_POST['import_user'])) {
+    if (isset($_FILES['file_user']['name']) && !empty($_FILES['file_user']['name'])) {
+        $filename = $_FILES['file_user']['tmp_name'];
+        $handle = fopen($filename, 'r');
+        if ($handle !== FALSE) {
+            $header = fgetcsv($handle, 1000, ',');
+            $mapped = array_map(function($col) {
+                return strtolower(trim($col));
+            }, $header ?? []);
+
+            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM users WHERE nip = ?");
+            $stmt_insert = $pdo->prepare("INSERT INTO users (nip, nama_lengkap, jabatan, status_kepegawaian, password, role) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_update = $pdo->prepare("UPDATE users SET nama_lengkap = ?, jabatan = ?, status_kepegawaian = ?, role = ? WHERE nip = ?");
+
+            $sukses = 0;
+            try {
+                while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+                    if (empty($data) || count($data) < 2) continue;
+                    $row = array_combine($mapped, $data);
+                    $nip = trim($row['nip'] ?? '');
+                    $nama = trim($row['nama_lengkap'] ?? '');
+                    $jabatan = trim($row['jabatan'] ?? '');
+                    $status = trim($row['status_kepegawaian'] ?? '');
+                    $role = trim($row['role'] ?? '');
+
+                    if ($nip === '' || $nama === '') continue;
+
+                    $stmt_check->execute([$nip]);
+                    if ((int)$stmt_check->fetchColumn() > 0) {
+                        $stmt_update->execute([$nama, $jabatan, $status, $role, $nip]);
+                    } else {
+                        $stmt_insert->execute([$nip, $nama, $jabatan, $status, password_hash($nip, PASSWORD_DEFAULT), $role]);
+                    }
+                    $sukses++;
+                }
+                $_SESSION['alert'] = ['type' => 'success', 'title' => 'Import Berhasil', 'text' => "Sebanyak $sukses data pengguna berhasil diimpor."];
+            } catch (PDOException $e) {
+                $_SESSION['alert'] = ['type' => 'error', 'title' => 'Gagal Import', 'text' => 'Terjadi kesalahan pada database: ' . $e->getMessage()];
+            }
+            fclose($handle);
+        }
+    }
+    header('Location: admin.php');
+    exit;
+}
+
 // ==============================================
 // FITUR BARU: JADWAL BANK SAMPAH (DISIMPAN KE JSON)
 // ==============================================
@@ -761,13 +842,13 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
     $current_page = basename($_SERVER['PHP_SELF']); 
     $cek_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
     ?>
-
+<!-- 1. Dashboard -->
     <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-pie"></i> <span class="menu-text">Dashboard</span></a>
-    
+<!-- 2. Manajemen User -->    
     <?php if(in_array($cek_role, ['Administrator'])): ?>
     <a href="admin.php" class="<?= $current_page == 'admin.php' ? 'active' : '' ?>"><i class="fas fa-users-cog"></i> <span class="menu-text">Manajemen User</span></a>
     <?php endif; ?>
-
+<!-- 3. Menu Kepegawaian (Dropdown) -->
     <?php 
     $is_kepegawaian = in_array($current_page, ['duk.php', 'arsip_kepeg.php']);
     if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -777,19 +858,21 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kepegawaian ? 'show' : '' ?>" id="menuKepegawaian" data-bs-parent="#sidebar">
+        <!-- Sub-menu 1: DUK & Masa Bakti -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="duk.php" class="<?= $current_page == 'duk.php' ? 'active' : '' ?>"><i class="fas fa-list-ol"></i> <span class="menu-text">DUK & Masa Bakti</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 2: Arsip Kepegawaian -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="arsip_kepeg.php" class="<?= $current_page == 'arsip_kepeg.php' ? 'active' : '' ?>"><i class="fa-regular fa-folder" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Arsip Kepegawaian</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 3: Beban ajar -->
         <?php if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="beban_ajar.php" class="<?= $current_page == 'beban_ajar.php' ? 'active' : '' ?>"><i class="fas fa-book-reader" style="color: rgb(255, 255, 255);"></i> <span class="menu-text">Beban Ajar</span></a>
         <?php endif; ?>
     </div>
-    
     <?php endif; ?>
-
+<!-- 4. Menu Persuratan (Dropdown) -->
     <?php 
     $is_persuratan = in_array($current_page, ['suratmasuk.php', 'suratkeluar.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -800,12 +883,14 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
     </a>
     <div class="collapse <?= $is_persuratan ? 'show' : '' ?>" id="menuPersuratan" data-bs-parent="#sidebar">
         <?php if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
+        <!-- Sub-menu 1: Surat Masuk -->
         <a href="suratmasuk.php" class="<?= $current_page == 'suratmasuk.php' ? 'active' : '' ?>"><i class="fas fa-envelope-open-text"></i> <span class="menu-text">Surat Masuk</span></a>
+        <!-- Sub-menu 2: Surat Keluar -->
         <a href="suratkeluar.php" class="<?= $current_page == 'suratkeluar.php' ? 'active' : '' ?>"><i class="fas fa-paper-plane"></i> <span class="menu-text">Surat Keluar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    
+<!-- 5. Menu Kesiswaan (Dropdown) -->
     <?php 
     $is_kesiswaan = in_array($current_page, ['mutasi.php', 'piket.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): 
@@ -815,19 +900,21 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
         <i class="fas fa-chevron-down ms-auto menu-text" style="font-size: 0.8rem;"></i>
     </a>
     <div class="collapse <?= $is_kesiswaan ? 'show' : '' ?>" id="menuKesiswaan" data-bs-parent="#sidebar">
+        <!-- Sub-menu 1. Mutasi -->   
         <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU'])): ?>
         <a href="mutasi.php" class="<?= $current_page == 'mutasi.php' ? 'active' : '' ?>"><i class="fas fa-exchange-alt"></i> <span class="menu-text">Mutasi Siswa</span></a>
         <?php endif; ?>
+        <!-- Sub-menu 2. Piket -->
         <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): ?>
         <a href="piket.php" class="<?= $current_page == 'piket.php' ? 'active' : '' ?>"><i class="fas fa-clipboard-user"></i> <span class="menu-text">Piket Pintar</span></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 6. Menu Laporan / Report -->
     <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket', 'TU_Persuratan'])): ?>
     <a href="laporan.php" class="<?= $current_page == 'laporan.php' ? 'active' : '' ?>"><i class="fas fa-file-export"></i> <span class="menu-text">Report</span></a>
     <?php endif; ?>
-    
+<!-- 7. Logout -->
     <a href="logout.php" class="mt-auto text-danger"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a>
 </div>
 
@@ -867,15 +954,49 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
         </li>
     </ul>
 
+    <!-- MODAL IMPORT USER -->
+    <div class="modal fade" id="modalImportUser" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header" style="background: var(--navy-blue); color: var(--gold);">
+            <h5 class="modal-title"><i class="fas fa-file-excel"></i> Import Data Pengguna SIMTU</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" enctype="multipart/form-data">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Pilih File CSV</label>
+                <input type="file" name="file_user" class="form-control" accept=".csv" required>
+              </div>
+              <small class="text-muted">Format kolom: nip, nama_lengkap, jabatan, status_kepegawaian, role</small>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" name="import_user" class="btn" style="background: var(--navy-blue); color: var(--gold);">Import Data</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="tab-content" id="adminTabsContent">
-        <!-- TAB 1: MANAJEMEN USER -->
-        <div class="tab-pane fade show active" id="manajemenUser" role="tabpanel">
+        <!-- TAB 1: MANAJEMEN USER -->        <div class="tab-pane fade show active" id="manajemenUser" role="tabpanel">
             <div class="card border-0 shadow-sm p-4">
-                <div class="d-flex justify-content-between mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 style="color: var(--navy-blue);"><i class="fas fa-users"></i> Daftar Pengguna SIMTU</h5>
-                    <button class="btn" style="background: var(--navy-blue); color: var(--gold);" data-bs-toggle="modal" data-bs-target="#modalTambahUser">
-                        <i class="fas fa-plus"></i> Tambah User
-                    </button>
+                    <div class="d-flex gap-2">
+                        <a href="admin.php?export_user=true" class="btn btn-sm btn-success">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </a>
+                        <a href="admin.php?download_template_user=true" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download"></i> Export Template
+                        </a>
+                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalImportUser">
+                            <i class="fas fa-file-excel"></i> Import Excel
+                        </button>
+                        <button class="btn btn-sm" style="background: var(--navy-blue); color: var(--gold);" data-bs-toggle="modal" data-bs-target="#modalTambahUser">
+                            <i class="fas fa-plus"></i> Tambah User
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -962,6 +1083,7 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
                                                       <option value="TU_Persuratan" <?= $u['role'] == 'TU_Persuratan' ? 'selected' : '' ?>>Staf TU Persuratan</option>
                                                       <option value="TU_Kesiswaan" <?= $u['role'] == 'TU_Kesiswaan' ? 'selected' : '' ?>>Staf TU Kesiswaan</option>
                                                       <option value="Guru_Piket" <?= $u['role'] == 'Guru_Piket' ? 'selected' : '' ?>>Guru Piket</option>
+                                                      <option value="Wali_Kelas" <?= $u['role'] == 'Wali_Kelas' ? 'selected' : '' ?>>Wali Kelas</option>
                                                   </select>
                                               </div>
                                           </div>
@@ -1934,6 +2056,7 @@ if(file_exists('uploads/assets/ttd_settings.json')) $ttd_settings = json_decode(
                           <option value="TU_Persuratan">Staf TU Persuratan</option>
                           <option value="TU_Kesiswaan">Staf TU Kesiswaan</option>
                           <option value="Guru_Piket">Guru Piket</option>
+                          <option value="Wali_Kelas">Wali Kelas</option>
                       </select>
                   </div>
               </div>

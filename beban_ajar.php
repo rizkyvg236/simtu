@@ -189,6 +189,153 @@ try {
 } catch (PDOException $e) {
     $data_beban = [];
 }
+
+function hitungBebanAjar($mapel, $tugas, $nip, &$tugas_dihitung) {
+    $jam_mapel = 0;
+    if (strpos($mapel, 'Pendidikan Agama Islam') !== false || strpos($mapel, 'Pendidikan Agama Kristen') !== false || strpos($mapel, 'PJOK') !== false || strpos($mapel, 'Informatika') !== false || strpos($mapel, 'Seni Budaya') !== false) {
+        $jam_mapel = 3;
+    } elseif (strpos($mapel, 'Bahasa Indonesia') !== false) {
+        $jam_mapel = 6;
+    } elseif (strpos($mapel, 'Matematika') !== false || strpos($mapel, 'Ilmu Pengetahuan Alam') !== false) {
+        $jam_mapel = 5;
+    } elseif (strpos($mapel, 'Bahasa Inggris') !== false || strpos($mapel, 'Ilmu Pengetahuan Sosial') !== false) {
+        $jam_mapel = 4;
+    } elseif (strpos($mapel, 'Bimbingan Konseling') !== false) {
+        $jam_mapel = 1;
+    }
+
+    $jam_tugas = 0;
+    if (!in_array($nip, $tugas_dihitung, true)) {
+        if (strpos($tugas, 'Wakil Kepala Sekolah') !== false) {
+            $jam_tugas = 12;
+        } elseif (strpos($tugas, 'Kepala Sekolah') !== false) {
+            $jam_tugas = 24;
+        } elseif (strpos($tugas, 'Kepala Laboratorium') !== false || strpos($tugas, 'Kepala Perpustakaan') !== false) {
+            $jam_tugas = 12;
+        } elseif (strpos($tugas, 'Wali Kelas') !== false) {
+            $jam_tugas = 2;
+        }
+
+        if ($tugas !== '-' && $tugas !== null && $tugas !== '') {
+            $tugas_dihitung[] = $nip;
+        }
+    }
+
+    return [
+        'mapel' => $jam_mapel,
+        'tugas' => $jam_tugas,
+        'total' => $jam_mapel + $jam_tugas,
+    ];
+}
+
+if (isset($_GET['export_excel'])) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="Beban_Ajar_Guru_' . date('Y-m-d') . '.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['No', 'NIP / NIK', 'Nama Pegawai', 'Status Pegawai', 'Rombel', 'Nomor SK', 'Tanggal SK', 'Tugas Tambahan', 'Mapel yang Diajarkan', 'Beban Jam']);
+
+    $tugas_dihitung = [];
+    foreach ($data_beban as $index => $row) {
+        $nip = $row['nip'] ?? '';
+        $mapel = $row['mapel_diajarkan'] ?? '';
+        $tugas = !empty($row['tugas_pegawai']) ? $row['tugas_pegawai'] : ($row['tugas_tambahan'] ?? '-');
+        $beban = hitungBebanAjar($mapel, $tugas, $nip, $tugas_dihitung);
+
+        fputcsv($output, [
+            $index + 1,
+            $nip ?: '-',
+            $row['nama_pegawai'] ?? '-',
+            $row['status_pegawai'] ?? '-',
+            $row['rombel'] ?? '-',
+            $row['nomor_sk'] ?? '-',
+            !empty($row['tgl_sk']) ? date('d/m/Y', strtotime($row['tgl_sk'])) : '-',
+            $tugas,
+            $mapel ?: '-',
+            $beban['total'] . ' Jam'
+        ]);
+    }
+
+    fclose($output);
+    exit;
+}
+
+if (isset($_GET['export_pdf'])) {
+    $judul = 'Laporan Beban Ajar Guru';
+    $tanggal = date('d-m-Y');
+    echo '<!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <title>' . htmlspecialchars($judul) . '</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+            h2 { text-align: center; margin-bottom: 8px; }
+            .meta { text-align: right; font-size: 12px; margin-bottom: 18px; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+            th { background: #f3f4f6; }
+            @media print { body { margin: 0; } }
+        </style>
+    </head>
+    <body>
+        <h2>' . htmlspecialchars($judul) . '</h2>
+        <div class="meta">Tanggal: ' . htmlspecialchars($tanggal) . '</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>NIP / NIK</th>
+                    <th>Nama Pegawai</th>
+                    <th>Status</th>
+                    <th>Rombel</th>
+                    <th>Nomor SK</th>
+                    <th>Tgl SK</th>
+                    <th>Tugas Tambahan</th>
+                    <th>Mapel</th>
+                    <th>Beban Jam</th>
+                </tr>
+            </thead>
+            <tbody>';
+
+    if (!empty($data_beban)) {
+        $tugas_dihitung = [];
+        foreach ($data_beban as $index => $row) {
+            $nip = $row['nip'] ?? '';
+            $mapel = $row['mapel_diajarkan'] ?? '';
+            $tugas = !empty($row['tugas_pegawai']) ? $row['tugas_pegawai'] : ($row['tugas_tambahan'] ?? '-');
+            $beban = hitungBebanAjar($mapel, $tugas, $nip, $tugas_dihitung);
+
+            echo '<tr>
+                <td>' . ($index + 1) . '</td>
+                <td>' . htmlspecialchars($nip ?: '-') . '</td>
+                <td>' . htmlspecialchars($row['nama_pegawai'] ?? '-') . '</td>
+                <td>' . htmlspecialchars($row['status_pegawai'] ?? '-') . '</td>
+                <td>' . htmlspecialchars($row['rombel'] ?? '-') . '</td>
+                <td>' . htmlspecialchars($row['nomor_sk'] ?? '-') . '</td>
+                <td>' . (!empty($row['tgl_sk']) ? htmlspecialchars(date('d/m/Y', strtotime($row['tgl_sk']))) : '-') . '</td>
+                <td>' . htmlspecialchars($tugas) . '</td>
+                <td>' . htmlspecialchars($mapel ?: '-') . '</td>
+                <td>' . htmlspecialchars($beban['total'] . ' Jam') . '</td>
+            </tr>';
+        }
+    } else {
+        echo '<tr><td colspan="10" style="text-align:center;">Tidak ada data</td></tr>';
+    }
+
+    echo '</tbody>
+        </table>
+        <script>
+            window.onload = function() {
+                setTimeout(function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 1000);
+                }, 300);
+            };
+        </script>
+    </body>
+    </html>';
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -213,17 +360,17 @@ try {
     $current_page = basename($_SERVER['PHP_SELF']); 
     $cek_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
     ?>
-
+<!-- 1. Dashboard -->
     <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">
         <i class="fas fa-chart-pie"></i> <span class="menu-text">Dashboard</span>
     </a>
-    
+<!-- 2. Manajemen User -->      
     <?php if(in_array($cek_role, ['Administrator'])): ?>
     <a href="admin.php" class="<?= $current_page == 'admin.php' ? 'active' : '' ?>">
         <i class="fas fa-users-cog"></i> <span class="menu-text">Manajemen User</span>
     </a>
     <?php endif; ?>
-
+<!-- 3. Menu Kepegawaian (Dropdown) -->
     <?php 
     $is_kepegawaian = in_array($current_page, ['duk.php', 'arsip_kepeg.php', 'beban_ajar.php']);
     if(in_array($cek_role, ['Administrator', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -244,7 +391,7 @@ try {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 4. Menu Persuratan (Dropdown) -->
     <?php 
     $is_persuratan = in_array($current_page, ['suratmasuk.php', 'suratkeluar.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Persuratan', 'Kepala_Sekolah', 'Kepala_TU'])): 
@@ -262,7 +409,7 @@ try {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    
+<!-- 5. Menu Kesiswaan (Dropdown) -->    
     <?php 
     $is_kesiswaan = in_array($current_page, ['mutasi.php', 'piket.php']);
     if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket'])): 
@@ -280,13 +427,13 @@ try {
         <?php endif; ?>
     </div>
     <?php endif; ?>
-
+<!-- 6. Menu Laporan / Report -->
     <?php if(in_array($cek_role, ['Administrator', 'TU_Kesiswaan', 'Kepala_Sekolah', 'Kepala_TU', 'Guru_Piket', 'TU_Persuratan'])): ?>
     <a href="laporan.php" class="<?= $current_page == 'laporan.php' ? 'active' : '' ?>">
         <i class="fas fa-file-export"></i> <span class="menu-text">Report</span>
     </a>
     <?php endif; ?>
-    
+ <!-- 7. Logout -->   
     <a href="logout.php" class="mt-auto text-danger"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></a>
 </div>
 
@@ -309,6 +456,12 @@ try {
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 style="color: var(--navy-blue);" class="m-0"><i class="fas fa-book-reader"></i> Daftar Beban Ajar Guru</h5>
             <div>
+                <a href="beban_ajar.php?export_excel=true" class="btn btn-sm btn-outline-success me-2">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </a>
+                <a href="beban_ajar.php?export_pdf=true" target="_blank" class="btn btn-sm btn-outline-danger me-2">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </a>
                 <a href="beban_ajar.php?download_template_beban=true" class="btn btn-sm btn-outline-success me-2">
                     <i class="fas fa-download"></i> Download Format Excel
                 </a>
@@ -345,44 +498,15 @@ try {
                 </thead>
                 <tbody>
                     <?php if(count($data_beban) > 0): $no=1; 
-                        $tugas_dihitung = []; // Array untuk melacak NIP yang jam tugas tambahannya sudah dihitung
+                        $tugas_dihitung = [];
                         foreach($data_beban as $row): 
                             $nip = $row['nip'];
                             $mapel = $row['mapel_diajarkan'];
                             $tugas = !empty($row['tugas_pegawai']) ? $row['tugas_pegawai'] : ($row['tugas_tambahan'] ?? '-');
-                            
-                            $jam_mapel = 0;
-                            if (strpos($mapel, 'Pendidikan Agama Islam') !== false || strpos($mapel, 'Pendidikan Agama Kristen') !== false || strpos($mapel, 'PJOK') !== false || strpos($mapel, 'Informatika') !== false || strpos($mapel, 'Seni Budaya') !== false) {
-                                $jam_mapel = 3;
-                            } elseif (strpos($mapel, 'Bahasa Indonesia') !== false) {
-                                $jam_mapel = 6;
-                            } elseif (strpos($mapel, 'Matematika') !== false || strpos($mapel, 'Ilmu Pengetahuan Alam') !== false) {
-                                $jam_mapel = 5;
-                            } elseif (strpos($mapel, 'Bahasa Inggris') !== false || strpos($mapel, 'Ilmu Pengetahuan Sosial') !== false) {
-                                $jam_mapel = 4;
-                            } elseif (strpos($mapel, 'Bimbingan Konseling') !== false) {
-                                $jam_mapel = 1;
-                            }
-
-                            // Ketentuan jam berdasarkan Tugas Tambahan (Urutan Wakil Kepala Sekolah ditaruh di atas Kepala Sekolah)
-                            $jam_tugas = 0;
-                            if (!in_array($nip, $tugas_dihitung)) {
-                                if (strpos($tugas, 'Wakil Kepala Sekolah') !== false) {
-                                    $jam_tugas = 12;
-                                } elseif (strpos($tugas, 'Kepala Sekolah') !== false) {
-                                    $jam_tugas = 24;
-                                } elseif (strpos($tugas, 'Kepala Laboratorium') !== false || strpos($tugas, 'Kepala Perpustakaan') !== false) {
-                                    $jam_tugas = 12;
-                                } elseif (strpos($tugas, 'Wali Kelas') !== false) {
-                                    $jam_tugas = 2;
-                                }
-                                
-                                if ($tugas !== '-') {
-                                    $tugas_dihitung[] = $nip; // Tandai NIP ini agar tugas tambahannya tidak dihitung lagi pada baris berikutnya
-                                }
-                            }
-
-                            $total_beban_jam = $jam_mapel + $jam_tugas;
+                            $beban = hitungBebanAjar($mapel, $tugas, $nip, $tugas_dihitung);
+                            $jam_mapel = $beban['mapel'];
+                            $jam_tugas = $beban['tugas'];
+                            $total_beban_jam = $beban['total'];
                     ?>
                     <tr>
                         <td><?= $no++ ?></td>
